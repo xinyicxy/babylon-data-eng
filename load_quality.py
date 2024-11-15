@@ -1,18 +1,18 @@
-"""Load the hospital quality dataset"""
+"""Upload the hospital quality dataset"""
 import sys
 import pandas as pd
 import psycopg
 import credentials
 from datetime import datetime
 
-# Reading dataframe
+# Getting values from command line argument
 if len(sys.argv) < 3:
-    # Getting number of lines from command line argument
     raise ValueError("Provide the date of data and pathname of file to read")
 
 date = sys.argv[1]
 filepath = sys.argv[2]
 
+# Reading dataframe
 df = pd.read_csv(filepath)
 names_dict = {'Facility ID': "hospital_id",
               'Hospital Type': "type_of_hospital",
@@ -38,7 +38,7 @@ list_quality = [(row.hospital_id, row.date,  row.quality_score) for row in
                 df_quality.itertuples(index=False)]
 
 
-# Reading into database
+# Opening connection to database
 conn = psycopg.connect(
    host="pinniped.postgres.database.azure.com",
    dbname=credentials.DB_USER,
@@ -48,7 +48,7 @@ conn = psycopg.connect(
 
 cur = conn.cursor()
 
-# Writing into demo database
+# Writing into "demo" database
 try:
 
     cur.executemany("""
@@ -70,13 +70,14 @@ try:
     print(f"{cur.rowcount} rows have been inserted or updated" +
           " in the database \"demo\".")
 
-except Exception as e:
-    # Roll back transaction in case of error
-    print(f"An error occurred: {e}")
+except Exception as err:
+    # Stop transaction in case of error, prints current rowcount
+    print(err, " at row ", cur.rowcount)
 else:
     conn.commit()
 
 
+# Writing into the "quality" database
 try:
     cur.executemany("INSERT INTO quality (hospital_id, date, quality_score) \
                     VALUES (%s, %s, cast(%s as integer))", list_quality)
@@ -84,6 +85,7 @@ try:
     print(rowcount, " rows have been inserted into database \"quality\".")
 
 except Exception as err:
+    # Stops transaction in case of error, prints current rowcount
     rowcount = cur.rowcount
     print(err, " at row ", rowcount)
 else:
