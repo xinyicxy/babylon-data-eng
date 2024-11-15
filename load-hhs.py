@@ -84,7 +84,15 @@ try:
     cur_demo.executemany(
         "INSERT INTO demo"
         "(id, name, state, address, zip, fips, latitude, longitude)"
-        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+        "ON CONFLICT (id) DO UPDATE SET "
+        "name = EXCLUDED.name,"
+        "state = EXCLUDED.state,"
+        "address = EXCLUDED.address,"
+        "zip = EXCLUDED.zip,"
+        "fips = EXCLUDED.fips,"
+        "latitude = EXCLUDED.latitude,"
+        "longitude = EXCLUDED.longitude;",
         demo
     )
     rowcount = cur_demo.rowcount
