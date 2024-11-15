@@ -3,6 +3,7 @@ import sys
 import pandas as pd
 import psycopg
 import credentials
+from datetime import datetime
 
 # Reading dataframe
 if len(sys.argv) < 3:
@@ -28,10 +29,15 @@ df.rename(columns=names_dict, inplace=True)
 df_quality = df[["hospital_id", "quality_score"]]
 df_quality = df_quality[df_quality.quality_score != 'Not Available']
 df_quality.quality_score = df_quality.quality_score.astype(int)
+
+date = datetime.strptime(date, "%Y-%m-%d").date()
 df_quality["date"] = date
-list_quality = df_quality.to_list()
 
+list_quality = [(row.hospital_id, row.date,  row.quality_score) for row in
+                df_quality.itertuples(index=False)]
+# list_quality = df_quality.to_list()
 
+# print(list_quality)
 
 
 # Reading into database
@@ -41,10 +47,22 @@ conn = psycopg.connect(
    user=credentials.DB_USER,  
    password=credentials.DB_PASSWORD
 )
+
+
+
+
+
+
+
+
+
 cur = conn.cursor()
 try:
     cur.executemany("INSERT INTO quality (hospital_id, date, quality_score) \
-                    VALUES (%s, %s, %d)", list_quality)
+                    VALUES (%s, %s, cast(%s as integer))", list_quality)
+    rowcount = cur.rowcount
+    print(rowcount, " rows have been inserted into database quality")
+
 except Exception as err:
     rowcount = cur.rowcount
     print(err, " at row ", rowcount)
@@ -52,12 +70,11 @@ except Exception as err:
 
 
 
-rowcount = cur.rowcount
+
 
 
 conn.commit()
 conn.close()
-print(rowcount + " rows have been isnerted into database quality")
 
 
 

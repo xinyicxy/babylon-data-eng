@@ -52,14 +52,14 @@ CREATE TABLE weekly (
     id SERIAL PRIMARY KEY,
     hospital_id TEXT NOT NULL REFERENCES demo (id),
     collection_week DATE NOT NULL,
-    adult_beds INTEGER CHECK (adult_beds >= 0),
-    adult_bed_occupied INTEGER CHECK (adult_bed_occupied >= 0),
-    pediatric_beds INTEGER CHECK (pediatric_beds >= 0),
-    pediatric_bed_occupied INTEGER CHECK (pediatric_bed_occupied >= 0),
-    icu_beds INTEGER CHECK (icu_beds >= 0),
-    icu_bed_occupied INTEGER CHECK (icu_bed_occupied >= 0),
-    beds_covid INTEGER CHECK (beds_covid >= 0),
-    icu_covid INTEGER CHECK (icu_covid >= 0)
+    adult_beds DECIMAL CHECK (adult_beds >= 0),
+    adult_bed_occupied DECIMAL CHECK (adult_bed_occupied >= 0),
+    pediatric_beds DECIMAL CHECK (pediatric_beds >= 0),
+    pediatric_bed_occupied DECIMAL CHECK (pediatric_bed_occupied >= 0),
+    icu_beds DECIMAL CHECK (icu_beds >= 0),
+    icu_bed_occupied DECIMAL CHECK (icu_bed_occupied >= 0),
+    beds_covid DECIMAL CHECK (beds_covid >= 0),
+    icu_covid DECIMAL CHECK (icu_covid >= 0)
 );"""
 cur_weekly.execute(create_weekly)
 
