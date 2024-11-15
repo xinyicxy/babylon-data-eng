@@ -44,8 +44,16 @@ cols_demo = [
 df2 = df[['hospital_pk'] + cols_demo].copy()
 
 
-"""Extracting Latitude and Longitude information"""
 def extract_lat_long(geo_address):
+    """Extracting Latitude and Longitude information
+    Parameters
+    ----------
+    geo_address: tuple of form (long, lat)
+
+    Returns
+    -------
+    pd.Series([float, float])
+    """
     if geo_address == "NA":
         return pd.Series([None, None])
     elif pd.notna(geo_address): 
@@ -81,7 +89,7 @@ demo = [(row.hospital_pk, row.hospital_name, row.state,
          row.fips, row.latitude, row.longitude,) for row in df2.itertuples(
              index=False)]
 try:
-    # Update the demographics information when seeing the same hospital id again
+    # Update the demographics information when we see the same hospital id
     cur_demo.executemany(
         "INSERT INTO demo"
         "(id, name, state, address, zip, fips, latitude, longitude)"
