@@ -103,8 +103,6 @@ except Exception as err:
     print(err, " at row ", rowcount)
 
 
-
-
 cur_weekly = conn.cursor()
 weekly = [(row.hospital_pk,
            row.collection_week,
@@ -135,7 +133,3 @@ except Exception as err:
     print(err, " at row ", rowcount)
 conn.commit()
 conn.close()
-
-
-
-
