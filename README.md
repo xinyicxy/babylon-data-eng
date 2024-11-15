@@ -103,13 +103,13 @@ This script creates the **three tables**: `demo`, `weekly`, and `quality`. It en
 
 Run this script **before** loading any data.
 
-### 2. **`load_hhs.py`**
+### 2. **`load-hhs.py`**
 This script:
 - Loads hospital data from an HHS dataset CSV.
 - Inserts data into the `demo` and `weekly` tables.
 - Handles duplicate entries using the `ON CONFLICT` clause to update existing records.
 
-### 3. **`load_quality.py`**
+### 3. **`load-quality.py`**
 This script:
 - Loads hospital quality score data from a CSV.
 - Inserts the data into the `quality` table.
@@ -125,14 +125,14 @@ Run `create_tables.py` to set up the database schema:
 python create_tables.py
 ```
 
-### Step 2: Create Tables
-Run `create_tables.py` to set up the database schema:
+### Step 2: Load HHS dataset 
+Run `load-hhs.py` to set up the database schema:
 ```bash
-python create_tables.py
+python load-hhs.py <path_to_hhs_dataset.csv>
 ```
 
-### Step 3: Create Tables
-Run `create_tables.py` to set up the database schema:
+### Step 3: Load Quality dataset 
+Run `load-quality.py` to set up the database schema:
 ```bash
-python create_tables.py
-
+python load_quality.py <YYYY-MM-DD> <path_to_quality_dataset.csv>
+```
