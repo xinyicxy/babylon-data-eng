@@ -3,6 +3,7 @@ import psycopg
 import credentials
 
 
+# Opening connection to database
 conn = psycopg.connect(
    host="pinniped.postgres.database.azure.com",
    dbname=credentials.DB_USER,
@@ -11,6 +12,7 @@ conn = psycopg.connect(
 )
 
 
+# Creating the table "demo"
 cur_demo = conn.cursor()
 cur_demo.execute("DROP TABLE IF EXISTS quality;")
 cur_demo.execute("DROP TABLE IF EXISTS weekly;")
@@ -32,6 +34,7 @@ CREATE TABLE demo (
 cur_demo.execute(create_demo)
 
 
+# Creating the table "quality"
 cur_quality = conn.cursor()
 cur_quality.execute("DROP TABLE IF EXISTS quality;")
 create_quality = """
@@ -45,6 +48,7 @@ CREATE TABLE quality (
 cur_quality.execute(create_quality)
 
 
+# Create the table "weekly"
 cur_weekly = conn.cursor()
 cur_weekly.execute("DROP TABLE IF EXISTS weekly;")
 create_weekly = """
@@ -64,11 +68,6 @@ CREATE TABLE weekly (
 cur_weekly.execute(create_weekly)
 
 
-
-
+# Commit changes and close connection
 conn.commit()
 conn.close()
-
-
-
-
