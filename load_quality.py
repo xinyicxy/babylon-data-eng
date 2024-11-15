@@ -12,7 +12,6 @@ if len(sys.argv) < 3:
 
 date = sys.argv[1]
 filepath = sys.argv[2]
-# Read file into a list
 
 df = pd.read_csv(filepath)
 names_dict = {'Facility ID': "hospital_id",
@@ -22,8 +21,10 @@ names_dict = {'Facility ID': "hospital_id",
               'Hospital overall rating': "quality_score"}
 df.rename(columns=names_dict, inplace=True)
 
-# Cleaning data to add to demographics table
-
+# Cleaning data for Unique hospital id
+df = df[df['hospital_id'].str.match(r'^\d{6}$')]
+df = df.dropna(subset=['hospital_id'])
+df = df.drop_duplicates(subset=['hospital_id'])
 
 # Cleaning data to add to quality table
 df_quality = df[["hospital_id", "quality_score"]]
@@ -35,52 +36,24 @@ df_quality["date"] = date
 
 list_quality = [(row.hospital_id, row.date,  row.quality_score) for row in
                 df_quality.itertuples(index=False)]
-# list_quality = df_quality.to_list()
-
-# print(list_quality)
 
 
 # Reading into database
 conn = psycopg.connect(
    host="pinniped.postgres.database.azure.com",
    dbname=credentials.DB_USER,
-   user=credentials.DB_USER,  
+   user=credentials.DB_USER,
    password=credentials.DB_PASSWORD
 )
 
-
-
-
-
-
-
-
-
 cur = conn.cursor()
+
+# Writing into demo database
 try:
-    cur.executemany("INSERT INTO quality (hospital_id, date, quality_score) \
-                    VALUES (%s, %s, cast(%s as integer))", list_quality)
-    rowcount = cur.rowcount
-    print(rowcount, " rows have been inserted into database quality")
 
-except Exception as err:
-    rowcount = cur.rowcount
-    print(err, " at row ", rowcount)
-
-
-
-
-
-
-
-conn.commit()
-conn.close()
-
-
-try:
-   with conn.cursor() as cur:
-       cur.executemany("""
-       INSERT INTO demo (id, type_of_hospital, type_of_ownership, emergency_service)
+    cur.executemany("""
+       INSERT INTO demo (id, type_of_hospital, type_of_ownership, \
+                    emergency_service)
        VALUES (%s, %s, %s, %s)
        ON CONFLICT (id)
        DO UPDATE SET
@@ -88,30 +61,33 @@ try:
            type_of_ownership = EXCLUDED.type_of_ownership,
            emergency_service = EXCLUDED.emergency_service
        """, [
-           (row.hospital_pk, row.type_of_hospital, row.type_of_ownership, row.emergency_service)
+           (row.hospital_id, row.type_of_hospital, row.type_of_ownership,
+            row.emergency_service)
            for row in df.itertuples(index=False)
        ])
 
-
-       # Print the result
-       print(f"{cur.rowcount} rows have been inserted or updated in the database.")
-
+    # Print the result
+    print(f"{cur.rowcount} rows have been inserted or updated" +
+          " in the database \"demo\".")
 
 except Exception as e:
-   # Roll back transaction in case of error
-   conn.rollback()
-   print(f"An error occurred: {e}")
+    # Roll back transaction in case of error
+    print(f"An error occurred: {e}")
+else:
+    conn.commit()
 
-conn.commit()
+
+try:
+    cur.executemany("INSERT INTO quality (hospital_id, date, quality_score) \
+                    VALUES (%s, %s, cast(%s as integer))", list_quality)
+    rowcount = cur.rowcount
+    print(rowcount, " rows have been inserted into database \"quality\".")
+
+except Exception as err:
+    rowcount = cur.rowcount
+    print(err, " at row ", rowcount)
+else:
+    conn.commit()
+
+
 conn.close()
-
-
-
-
-
-
-
-
-
-
-
