@@ -1,4 +1,4 @@
-"""Import HHS dataset"""
+"""Upload HHS dataset"""
 import sys
 import pandas as pd
 import psycopg
@@ -96,11 +96,13 @@ try:
         demo
     )
     rowcount = cur_demo.rowcount
-    print(rowcount, " rows have been inserted into database quality")
+    print(rowcount, " rows have been inserted into database \"demo\"")
 
 except Exception as err:
     rowcount = cur_demo.rowcount
     print(err, " at row ", rowcount)
+else:
+    conn.commit()
 
 
 cur_weekly = conn.cursor()
@@ -120,16 +122,17 @@ try:
     cur_weekly.executemany(
         "INSERT INTO weekly"
         "(hospital_id, collection_week, adult_beds, adult_bed_occupied, \
-            pediatric_beds, pediatric_bed_occupied, icu_beds, icu_bed_occupied, \
-                beds_covid, icu_covid)"
+            pediatric_beds, pediatric_bed_occupied, icu_beds, \
+                icu_bed_occupied, beds_covid, icu_covid)"
         "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
         weekly
     )
     rowcount = cur_weekly.rowcount
-    print(rowcount, " rows have been inserted into database quality")
+    print(rowcount, " rows have been inserted into database \"weekly\"")
 
 except Exception as err:
     rowcount = cur_weekly.rowcount
     print(err, " at row ", rowcount)
-conn.commit()
+else:
+    conn.commit()
 conn.close()
