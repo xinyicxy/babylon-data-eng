@@ -77,4 +77,41 @@ conn.commit()
 conn.close()
 
 
+try:
+   with conn.cursor() as cur:
+       cur.executemany("""
+       INSERT INTO demo (id, type_of_hospital, type_of_ownership, emergency_service)
+       VALUES (%s, %s, %s, %s)
+       ON CONFLICT (id)
+       DO UPDATE SET
+           type_of_hospital = EXCLUDED.type_of_hospital,
+           type_of_ownership = EXCLUDED.type_of_ownership,
+           emergency_service = EXCLUDED.emergency_service
+       """, [
+           (row.hospital_pk, row.type_of_hospital, row.type_of_ownership, row.emergency_service)
+           for row in df.itertuples(index=False)
+       ])
+
+
+       # Print the result
+       print(f"{cur.rowcount} rows have been inserted or updated in the database.")
+
+
+except Exception as e:
+   # Roll back transaction in case of error
+   conn.rollback()
+   print(f"An error occurred: {e}")
+
+conn.commit()
+conn.close()
+
+
+
+
+
+
+
+
+
+
 
