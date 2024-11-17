@@ -134,5 +134,5 @@ python load-hhs.py <path_to_hhs_dataset.csv>
 ### Step 3: Load Quality dataset 
 Run `load-quality.py` to set up the database schema:
 ```bash
-python load_quality.py <YYYY-MM-DD> <path_to_quality_dataset.csv>
+python load-quality.py <YYYY-MM-DD> <path_to_quality_dataset.csv>
 ```
