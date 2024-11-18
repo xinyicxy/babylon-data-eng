@@ -112,6 +112,9 @@ except Exception as err:
     rowcount = cur_demo.rowcount
     print(err, " at row ", rowcount)
 
+else:
+    conn.commit()
+
 # Insert into weekly table
 cur_weekly = conn.cursor()
 weekly = [(row.hospital_pk,
@@ -142,5 +145,8 @@ except Exception as err:
     rowcount = cur_weekly.rowcount
     print(err, " at row ", rowcount)
 
-conn.commit()
+else:
+    conn.commit()
+
+
 conn.close()
