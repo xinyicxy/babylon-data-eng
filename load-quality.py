@@ -26,6 +26,9 @@ df = df[df['hospital_id'].str.match(r'^\d{6}$')]
 df = df.dropna(subset=['hospital_id'])
 df = df.drop_duplicates(subset=['hospital_id'])
 
+# Convert float("NaN") type to python None type
+df = df.replace({float("NaN"): None})
+
 # Cleaning data to add to quality table
 df_quality = df[["hospital_id", "quality_score"]]
 df_quality = df_quality[df_quality.quality_score != 'Not Available']
@@ -36,7 +39,6 @@ df_quality["date"] = date
 
 list_quality = [(row.hospital_id, row.date,  row.quality_score) for row in
                 df_quality.itertuples(index=False)]
-
 
 # Opening connection to database
 conn = psycopg.connect(

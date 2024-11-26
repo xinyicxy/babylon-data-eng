@@ -26,6 +26,7 @@ cols = ['all_adult_hospital_beds_7_day_avg',
         'inpatient_beds_used_covid_7_day_avg',
         'staffed_icu_adult_patients_confirmed_covid_7_day_avg']
 df[cols] = df[cols].where(df[cols] >= 0, None)
+df[cols] = df[cols].where(df[cols] != 'NA', None)
 
 # Weekly table copy
 df1 = df[['hospital_pk', 'collection_week'] + cols].copy()
@@ -56,7 +57,7 @@ def extract_lat_long(geo_address):
     """
     if geo_address == "NA":
         return pd.Series([None, None])
-    elif pd.notna(geo_address): 
+    elif pd.notna(geo_address):
         match = re.match(r'POINT \(([-+]?\d+\.\d+)\s+([-+]?\d+\.\d+)\)',
                          geo_address)
         if match:
@@ -72,6 +73,11 @@ df2[['latitude', 'longitude']] = df2['geocoded_hospital_address'].apply(
 
 # Rename the fips column
 df2 = df2.rename(columns={'fips_code': 'fips'})
+
+# Convert float("NaN") type to python None type
+df1 = df1.replace({float("NaN"): None})
+df2 = df2.replace({float("NaN"): None})
+
 
 # Read data into tables
 conn = psycopg.connect(
