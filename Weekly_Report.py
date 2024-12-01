@@ -1,21 +1,12 @@
 """Script to generate streamlit dashboard"""
 import streamlit as st
-import sys
 import pandas as pd
 import psycopg
-import re
-import pydeck as pdk
-import matplotlib.dates as mdates
 import credentials
 from datetime import datetime
-from matplotlib import pyplot as plt
-import geopandas as gpd
-import matplotlib.colors as mcolors
-from matplotlib.ticker import FuncFormatter
 import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
-
 
 
 # Database connection
@@ -28,18 +19,14 @@ conn = psycopg.connect(
 
 cur = conn.cursor()
 
-
 # Streamlit Configurations
 st.set_page_config(
     layout="wide",
     page_title="Weekly Report",
 )
 
-
 st.title('Covid Hospital Data Explorer')
 st.text('This is a dashboard to explore hospital data in the USA.')
-
-
 
 # Obtain the week from dropdown bar
 cur.execute("SELECT DISTINCT collection_week FROM weekly;")
@@ -53,15 +40,9 @@ selected_week = st.selectbox("Select a Week", week_options)
 date = datetime.strptime(selected_week, '%Y-%m-%d')
 
 
-
-
-
-
-
 # Plot 2: Table summarizing the number of adult and pediatric beds
 # available that week, the number used, and the number used by patients
 # with COVID, compared to the 4 most recent weeks.
-
 cur.execute("SELECT collection_week, sum(adult_beds) AS adult_beds, \
             sum(pediatric_beds) AS pediatric_beds, \
             sum(adult_bed_occupied)+sum(pediatric_bed_occupied) AS beds_used, \
@@ -79,48 +60,45 @@ df1.columns = ['Week Collected', 'Adult beds available',
                'Total beds used',
                'COVID patients']
 
-
 st.subheader("Hospital Beds availability information in recent weeks")
 st.dataframe(df1)
-# st.dataframe(df1)
-
-
-
 
 
 # Plot 1: Summary of how many hospital records were loaded in the week
 # selected by the user, and how that compares to previous weeks.
-
 def fetch_weekly_data(conn, selected_week):
-   query = """
-   WITH weekly_data AS (
-       SELECT
-           collection_week,
-           COUNT(*) AS hospital_records
-       FROM weekly
-       WHERE collection_week <= %s
-       GROUP BY collection_week
-   )
-   SELECT
-       collection_week,
-       hospital_records,
-       LAG(hospital_records) OVER (ORDER BY collection_week) AS prev_week_records,
-       hospital_records - LAG(hospital_records) OVER (ORDER BY collection_week) AS diff,
-       CASE
-           WHEN LAG(hospital_records) OVER (ORDER BY collection_week) IS NOT NULL
-           THEN ((hospital_records - LAG(hospital_records) OVER (ORDER BY collection_week)) * 100.0) /
-                LAG(hospital_records) OVER (ORDER BY collection_week)
-           ELSE NULL
-       END AS percent_change
-   FROM weekly_data
-   ORDER BY collection_week;
-   """
-   params = (selected_week,)
-   return pd.read_sql_query(query, conn, params=params)
+    query = """
+    WITH weekly_data AS (
+        SELECT
+            collection_week,
+            COUNT(*) AS hospital_records
+        FROM weekly
+        WHERE collection_week <= %s
+        GROUP BY collection_week
+    )
+    SELECT
+        collection_week,
+        hospital_records,
+        LAG(hospital_records) OVER (ORDER BY collection_week)
+            AS prev_week_records,
+        hospital_records - LAG(hospital_records) OVER
+            (ORDER BY collection_week) AS diff,
+        CASE
+            WHEN LAG(hospital_records) OVER
+                (ORDER BY collection_week) IS NOT NULL
+            THEN ((hospital_records - LAG(hospital_records)
+                OVER (ORDER BY collection_week)) * 100.0) /
+                    LAG(hospital_records) OVER (ORDER BY collection_week)
+            ELSE NULL
+        END AS percent_change
+    FROM weekly_data
+    ORDER BY collection_week;
+    """
+    params = (selected_week,)
+    return pd.read_sql_query(query, conn, params=params)
 
 
 df = fetch_weekly_data(conn, selected_week)
-
 
 # Create figure
 fig = go.Figure()
@@ -135,28 +113,27 @@ fig.update_layout(
    title='Hospital Records over Past Weeks',
 )
 
-
 # Summary
 selected_week_data = df[df['collection_week'] == date.date()]
 selected_week_value = selected_week_data['hospital_records'].values[0]
 st.subheader(f"Summary of Number of Hospital Records in Week {selected_week}")
-st.write(f"Number of Hospital Records for the week of {selected_week}: {selected_week_value}")
-
+st.write((
+    f"Number of Hospital Records for the week of {selected_week}: "
+    f"{selected_week_value}"
+))
 
 # Check if there is a previous week's data to compare
 if not selected_week_data['prev_week_records'].isna().values[0]:
-   prev_week_value = selected_week_data['prev_week_records'].values[0]
-   diff = selected_week_data['diff'].values[0]
-   percent_change = selected_week_data['percent_change'].values[0]
+    prev_week_value = selected_week_data['prev_week_records'].values[0]
+    diff = selected_week_data['diff'].values[0]
+    percent_change = selected_week_data['percent_change'].values[0]
 
-
-   st.write(f"Number of Hospital Records for the previous week: {int(prev_week_value)}")
-   st.write(f"Difference from previous week: {int(diff)} records")
-   st.write(f"Percentage change: {percent_change:.2f}%")
+    st.write(f"Number of Hospital Records for the previous week: {int(
+        prev_week_value)}")
+    st.write(f"Difference from previous week: {int(diff)} records")
+    st.write(f"Percentage change: {percent_change:.2f}%")
 else:
-   st.write("No previous week data available for comparison.")
-
-
+    st.write("No previous week data available for comparison.")
 
 # Create 2 columns in streamlit
 left_col, right_col = st.columns(2)
@@ -165,29 +142,21 @@ left_col, right_col = st.columns(2)
 left_col.write(fig)
 
 
-
-
-
-
-
-
-
-
-
 # Plot 3: Graph summarizing fraction of beds in use by hospital quality rating
 cur.execute("SELECT quality.quality_score, \
-           sum(weekly.adult_bed_occupied)/sum(weekly.adult_beds) \
-            as bed_fraction \
-           FROM weekly INNER JOIN quality ON \
-            weekly.hospital_id = quality.hospital_id \
-WHERE weekly.collection_week = %s \
-AND weekly.adult_bed_occupied <= weekly.adult_beds \
-AND quality.date = ( \
-     SELECT MAX(q.date) \
-     FROM quality q \
-     WHERE q.hospital_id = weekly.hospital_id \
-       AND q.date < %s) \
-GROUP BY quality.quality_score;", [date, date])
+                    sum(weekly.adult_bed_occupied)/sum(weekly.adult_beds) \
+                        as bed_fraction \
+                    FROM weekly INNER JOIN quality ON \
+                        weekly.hospital_id = quality.hospital_id \
+                WHERE weekly.collection_week = %s \
+                    AND weekly.adult_bed_occupied <= weekly.adult_beds \
+                    AND quality.date = ( \
+                        SELECT MAX(q.date) \
+                        FROM quality q \
+                        WHERE q.hospital_id = weekly.hospital_id \
+                            AND q.date < %s) \
+                GROUP BY quality.quality_score;",
+            [date, date])
 
 results = cur.fetchall()
 df = pd.DataFrame(results, columns=[desc[0] for desc in cur.description])
@@ -197,25 +166,21 @@ df.rename(columns={"quality_score": "Hospital Quality Rating",
           inplace=True)
 
 fig = px.bar(df, x="Hospital Quality Rating",  y="Fraction of Beds Occupied",
-              title='Fraction of Beds Occupied against Hospital Quality \
-Rating')
-
+             title='Fraction of Beds Occupied against Hospital Quality Rating')
 
 left_col.write(fig)
-# st.write(fig)
-
-
 
 
 # Plot 4: Total number of hospital beds used per week, over all time up to the
 # selected week, split into all cases and COVID cases.
 cur.execute("SELECT collection_week, sum(adult_beds) as total_beds, \
-            sum(beds_covid) as covid_beds \
-           FROM weekly \
-           WHERE collection_week <= %s \
-           AND adult_beds is not NULL \
-           AND beds_covid is not null \
-GROUP BY collection_week;", [date])
+                    sum(beds_covid) as covid_beds \
+                FROM weekly \
+                WHERE collection_week <= %s \
+                    AND adult_beds is not NULL \
+                    AND beds_covid is not null \
+                GROUP BY collection_week;",
+            [date])
 results = cur.fetchall()
 df = pd.DataFrame(results, columns=[desc[0] for desc in cur.description])
 df.total_beds = df.total_beds.astype(float)
@@ -253,33 +218,34 @@ fig.update_layout(
 
 # Show the figure
 right_col.write(fig)
-# st.write(fig)
-
-
 
 
 # Plot 5: Plot of covid icu vs non icu by quality over time
+@st.cache_data
 def load_data(date):
     cur.execute("WITH latest_quality AS ( \
-    SELECT \
-        B.hospital_id, \
-        B.quality_score, \
-        B.date, \
-        ROW_NUMBER() OVER (PARTITION BY B.hospital_id ORDER BY B.date DESC) AS rn \
-    FROM quality B \
-    WHERE B.date <= %s \
-) \
-SELECT \
-    A.collection_week, \
-    LQ.quality_score, \
-    SUM(A.beds_covid) AS beds_covid, \
-    SUM(A.icu_covid) AS icu_covid, \
-    SUM(A.icu_covid)/SUM(A.beds_covid) AS icu_fraction \
-FROM weekly A \
-JOIN latest_quality LQ ON A.hospital_id = LQ.hospital_id AND LQ.rn = 1 \
-WHERE A.collection_week <= %s \
-GROUP BY LQ.quality_score, A.collection_week \
-ORDER BY A.collection_week, LQ.quality_score;", [date, date])
+                        SELECT \
+                            B.hospital_id, \
+                            B.quality_score, \
+                            B.date, \
+                            ROW_NUMBER() OVER (PARTITION BY B.hospital_id \
+                                ORDER BY B.date DESC) AS rn \
+                        FROM quality B \
+                        WHERE B.date <= %s \
+                    ) \
+                    SELECT \
+                        A.collection_week, \
+                        LQ.quality_score, \
+                        SUM(A.beds_covid) AS beds_covid, \
+                        SUM(A.icu_covid) AS icu_covid, \
+                        SUM(A.icu_covid)/SUM(A.beds_covid) AS icu_fraction \
+                    FROM weekly A \
+                    JOIN latest_quality LQ \
+                    ON A.hospital_id = LQ.hospital_id AND LQ.rn = 1 \
+                    WHERE A.collection_week <= %s \
+                    GROUP BY LQ.quality_score, A.collection_week \
+                    ORDER BY A.collection_week, LQ.quality_score;",
+                [date, date])
 
     results = cur.fetchall()
     df2 = pd.DataFrame(results, columns=[desc[0] for desc in cur.description])
@@ -291,11 +257,8 @@ ORDER BY A.collection_week, LQ.quality_score;", [date, date])
 # Load data with caching
 df2 = load_data(date)
 
-
 # Streamlit title
 st.subheader("COVID Beds Trends by Quality Rating")
-
-
 
 # Dropdown for multiple selection
 quality_options = df2["quality_score"].unique()
@@ -303,15 +266,12 @@ quality_options = np.append(quality_options, "Total")
 selected_qualities = st.multiselect("Select Quality Scores to Display:",
                                     quality_options, default=quality_options)
 
-
 # Determine if "Total" is included and remove it
 if "Total" in selected_qualities:
-# if np.isin("Total", selected_qualities):
-   include_total = True
-   selected_qualities.remove("Total")
-
+    include_total = True
+    selected_qualities.remove("Total")
 else:
-   include_total = False
+    include_total = False
 
 selected_qualities = [int(item) for item in selected_qualities]
 
@@ -320,8 +280,6 @@ filtered_df = df2[df2["quality_score"].isin(selected_qualities)]
 grouped = filtered_df.groupby("quality_score")
 unique_dates = sorted(filtered_df["collection_week"].unique())
 
-
-
 # Calculate the total
 total_beds_covid = (
     filtered_df.groupby("collection_week")["beds_covid"]
@@ -329,7 +287,6 @@ total_beds_covid = (
     .reset_index()
     .rename(columns={"beds_covid": "total"})
 )
-
 total_icu_covid = (
     filtered_df.groupby("collection_week")["icu_covid"]
     .sum()
@@ -337,9 +294,7 @@ total_icu_covid = (
     .rename(columns={"icu_covid": "total"})
 )
 
-
 col1, col2, col3 = st.columns(3)
-
 
 # Leftmost Listing for beds_covid
 fig1 = px.line(
@@ -361,10 +316,9 @@ if include_total:
             y=total_beds_covid["total"],
             mode="lines+markers",
             name="Total",
-            line=dict(color="black", dash="dash"),
+            line=dict(color="grey", dash="dash"),
         )
     )
-
 
 # Move the legend to the bottom
 fig1.update_layout(
@@ -385,7 +339,6 @@ fig1.update_layout(
 fig1.update_traces(hovertemplate="<b>%{y}</b>")
 col1.plotly_chart(fig1)
 
-
 # Center Listing for icu_covid
 fig1 = px.line(
     filtered_df,
@@ -399,16 +352,15 @@ fig1 = px.line(
             "quality_score": "Quality Score"},
 )
 if include_total:
-   fig1.add_trace(
+    fig1.add_trace(
         go.Scatter(
             x=total_icu_covid["collection_week"],
             y=total_icu_covid["total"],
             mode="lines+markers",
             name="Total",
-            line=dict(color="black", dash="dash"),
+            line=dict(color="grey", dash="dash"),
         )
     )
-
 
 # Move the legend to the bottom
 fig1.update_layout(
@@ -428,7 +380,6 @@ fig1.update_layout(
 
 fig1.update_traces(hovertemplate="<b>%{y}</b>")
 col2.plotly_chart(fig1)
-
 
 # Rightmost column: display the fraction of the icu_covid over the sum
 fig2 = px.line(
@@ -458,16 +409,8 @@ fig2.update_layout(
     )
 )
 
-
 fig2.update_traces(hovertemplate="<b>%{y:.2f}</b>")
 col3.plotly_chart(fig2)
-
-
-
-
-
-
-
 
 
 # Plot 6: Map of covid hospital beds by state
@@ -478,7 +421,6 @@ GROUP BY demo.state", [date])
 results = cur.fetchall()
 df = pd.DataFrame(results, columns=[desc[0] for desc in cur.description])
 df.covid_beds = df.covid_beds.astype(float)
-
 
 # Figure plotting for plot 6
 fig = go.Figure(data=go.Choropleth(
@@ -495,7 +437,3 @@ fig.update_layout(
 )
 
 right_col.write(fig)
-# st.write(fig)
-
-
-
