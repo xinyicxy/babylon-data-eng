@@ -91,64 +91,69 @@ st.dataframe(df1)
 # selected by the user, and how that compares to previous weeks.
 
 def fetch_weekly_data(conn, selected_week):
-    query = """
-    SELECT
-        collection_week,
-        COUNT(*) AS hospital_records
-    FROM weekly
-    WHERE collection_week <= %s
-    GROUP BY collection_week
-    ORDER BY collection_week;
-    """
-    params = (selected_week,)
- 
-    return pd.read_sql_query(query, conn, params=params)
+   query = """
+   WITH weekly_data AS (
+       SELECT
+           collection_week,
+           COUNT(*) AS hospital_records
+       FROM weekly
+       WHERE collection_week <= %s
+       GROUP BY collection_week
+   )
+   SELECT
+       collection_week,
+       hospital_records,
+       LAG(hospital_records) OVER (ORDER BY collection_week) AS prev_week_records,
+       hospital_records - LAG(hospital_records) OVER (ORDER BY collection_week) AS diff,
+       CASE
+           WHEN LAG(hospital_records) OVER (ORDER BY collection_week) IS NOT NULL
+           THEN ((hospital_records - LAG(hospital_records) OVER (ORDER BY collection_week)) * 100.0) /
+                LAG(hospital_records) OVER (ORDER BY collection_week)
+           ELSE NULL
+       END AS percent_change
+   FROM weekly_data
+   ORDER BY collection_week;
+   """
+   params = (selected_week,)
+   return pd.read_sql_query(query, conn, params=params)
 
 
 df = fetch_weekly_data(conn, selected_week)
 
 
-
-# Add columns for previous week comparisons
-df['prev_week_records'] = df['hospital_records'].shift(1)
-df['diff'] = df['hospital_records'] - df['prev_week_records']
-df['percent_change'] = (df['diff'] / df['prev_week_records']) * 100
-
 # Create figure
 fig = go.Figure()
-fig.add_trace(go.Scatter(x=df['collection_week'],
-                         y=df['hospital_records'],
-                         mode='lines+markers',
-                         name='Number of Hospital Records',
-                         line=dict(color='blue')))
-
+fig.add_trace(go.Scatter(
+   x=df['collection_week'],
+   y=df['hospital_records'],
+   mode='lines+markers',
+   name='Number of Hospital Records',
+   line=dict(color='blue')
+))
 fig.update_layout(
-    title='Hospital Records over Past Weeks',
+   title='Hospital Records over Past Weeks',
 )
 
 
-
-
-
 # Summary
-
 selected_week_data = df[df['collection_week'] == date.date()]
 selected_week_value = selected_week_data['hospital_records'].values[0]
 st.subheader(f"Summary of Number of Hospital Records in Week {selected_week}")
 st.write(f"Number of Hospital Records for the week of {selected_week}: {selected_week_value}")
 
+
 # Check if there is a previous week's data to compare
 if not selected_week_data['prev_week_records'].isna().values[0]:
-    prev_week_value = selected_week_data['prev_week_records'].values[0]
-    diff = selected_week_data['diff'].values[0]
-    percent_change = selected_week_data['percent_change'].values[0]
+   prev_week_value = selected_week_data['prev_week_records'].values[0]
+   diff = selected_week_data['diff'].values[0]
+   percent_change = selected_week_data['percent_change'].values[0]
 
 
-    st.write(f"Number of Hospital Records for the previous week: {int(prev_week_value)}")
-    st.write(f"Difference from previous week: {int(diff)} records")
-    st.write(f"Percentage change: {percent_change:.2f}%")
+   st.write(f"Number of Hospital Records for the previous week: {int(prev_week_value)}")
+   st.write(f"Difference from previous week: {int(diff)} records")
+   st.write(f"Percentage change: {percent_change:.2f}%")
 else:
-    st.write("No previous week data available for comparison.")
+   st.write("No previous week data available for comparison.")
 
 
 
