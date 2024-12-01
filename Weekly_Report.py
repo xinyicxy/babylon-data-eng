@@ -14,6 +14,7 @@ import matplotlib.colors as mcolors
 from matplotlib.ticker import FuncFormatter
 import plotly.express as px
 import plotly.graph_objects as go
+import numpy as np
 
 
 
@@ -271,9 +272,9 @@ def load_data(date):
 SELECT \
     A.collection_week, \
     LQ.quality_score, \
-    COUNT(*) AS numbers, \
     SUM(A.beds_covid) AS beds_covid, \
-    SUM(A.icu_covid) AS icu_covid \
+    SUM(A.icu_covid) AS icu_covid, \
+    SUM(A.icu_covid)/SUM(A.beds_covid) AS icu_fraction \
 FROM weekly A \
 JOIN latest_quality LQ ON A.hospital_id = LQ.hospital_id AND LQ.rn = 1 \
 WHERE A.collection_week <= %s \
@@ -295,13 +296,24 @@ df2 = load_data(date)
 st.subheader("COVID Beds Trends by Quality Rating")
 
 
-# Dropdown for metric selection
-metric = st.selectbox("Choose a metric:", ["beds_covid", "icu_covid"])
+
 # Dropdown for multiple selection
 quality_options = df2["quality_score"].unique()
+quality_options = np.append(quality_options, "Total")
 selected_qualities = st.multiselect("Select Quality Scores to Display:",
                                     quality_options, default=quality_options)
 
+
+# Determine if "Total" is included and remove it
+if "Total" in selected_qualities:
+# if np.isin("Total", selected_qualities):
+   include_total = True
+   selected_qualities.remove("Total")
+
+else:
+   include_total = False
+
+selected_qualities = [int(item) for item in selected_qualities]
 
 # Filter the DataFrame based on selection
 filtered_df = df2[df2["quality_score"].isin(selected_qualities)]
@@ -309,99 +321,146 @@ grouped = filtered_df.groupby("quality_score")
 unique_dates = sorted(filtered_df["collection_week"].unique())
 
 
+
 # Calculate the total
-total_line = (
-    filtered_df.groupby("collection_week")[metric]
+total_beds_covid = (
+    filtered_df.groupby("collection_week")["beds_covid"]
     .sum()
     .reset_index()
-    .rename(columns={metric: "total"})
+    .rename(columns={"beds_covid": "total"})
+)
+
+total_icu_covid = (
+    filtered_df.groupby("collection_week")["icu_covid"]
+    .sum()
+    .reset_index()
+    .rename(columns={"icu_covid": "total"})
 )
 
 
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 
 
-# Left column: user selection for beds_covid or icu_covid
-with col1:
-    fig1 = px.line(
-        filtered_df,
-        x="collection_week",
-        y=metric,
-        color="quality_score",
-        markers=True,
-        title=f"{metric} Trends by Quality Rating",
-        labels={"collection_week": "Collection Week",
-                metric: metric.replace('_', ' ').capitalize()},
-    )
-    # Add the total line to the plot
+# Leftmost Listing for beds_covid
+fig1 = px.line(
+    filtered_df,
+    x="collection_week",
+    y="beds_covid",
+    color="quality_score",
+    markers=True,
+    title="COVID beds by Quality Rating over Time",
+    labels={"collection_week": "Collection Week",
+            "beds_covid": "COVID beds",
+            "quality_score": "Quality Score"},
+)
+# Add the total line to the plot
+if include_total:
     fig1.add_trace(
         go.Scatter(
-            x=total_line["collection_week"],
-            y=total_line["total"],
+            x=total_beds_covid["collection_week"],
+            y=total_beds_covid["total"],
             mode="lines+markers",
             name="Total",
-            line=dict(color="white", dash="dash"),
+            line=dict(color="black", dash="dash"),
         )
     )
 
 
-    # Move the legend to the bottom
-    fig1.update_layout(
-        xaxis=dict(
-            tickmode="array",
-            tickvals=unique_dates,
-            ticktext=[date.strftime("%Y-%m-%d") for date in unique_dates],
-        ),
-        legend=dict(
-            orientation="h",  # Horizontal legend
-            y=-0.2,  # Move the legend below the plot
-            x=0.5,  # Center the legend
-            xanchor="center",  # Horizontal alignment
-            yanchor="top",  # Vertical alignment
+# Move the legend to the bottom
+fig1.update_layout(
+    xaxis=dict(
+        tickmode="array",
+        tickvals=unique_dates,
+        ticktext=[date.strftime("%Y-%m-%d") for date in unique_dates],
+    ),
+    legend=dict(
+        orientation="h",  # Horizontal legend
+        y=-0.2,  # Move the legend below the plot
+        x=0.5,  # Center the legend
+        xanchor="center",  # Horizontal alignment
+        yanchor="top",  # Vertical alignment
+    )
+)
+
+fig1.update_traces(hovertemplate="<b>%{y}</b>")
+col1.plotly_chart(fig1)
+
+
+# Center Listing for icu_covid
+fig1 = px.line(
+    filtered_df,
+    x="collection_week",
+    y="icu_covid",
+    color="quality_score",
+    markers=True,
+    title="COVID ICU beds by Quality Rating Over Time",
+    labels={"collection_week": "Collection Week",
+            "icu_covid": "COVID ICU beds",
+            "quality_score": "Quality Score"},
+)
+if include_total:
+   fig1.add_trace(
+        go.Scatter(
+            x=total_icu_covid["collection_week"],
+            y=total_icu_covid["total"],
+            mode="lines+markers",
+            name="Total",
+            line=dict(color="black", dash="dash"),
         )
     )
 
 
-    fig1.update_traces(hovertemplate="<b>%{y}</b>")
-    st.plotly_chart(fig1)
-
-
-# Right column: display the fraction of the selected metric over the sum
-with col2:
-    # Calculate fraction
-    filtered_df["fraction"] = (filtered_df[metric] /
-                               (filtered_df["beds_covid"] +
-                                filtered_df["icu_covid"]))
-
-
-    fig2 = px.line(
-        filtered_df,
-        x="collection_week",
-        y="fraction",
-        color="quality_score",
-        markers=True,
-        title=f"Fraction of {metric} Over Total",
-        labels={"collection_week": "Collection Week", "fraction": "Fraction"},
+# Move the legend to the bottom
+fig1.update_layout(
+    xaxis=dict(
+        tickmode="array",
+        tickvals=unique_dates,
+        ticktext=[date.strftime("%Y-%m-%d") for date in unique_dates],
+    ),
+    legend=dict(
+        orientation="h",  # Horizontal legend
+        y=-0.2,  # Move the legend below the plot
+        x=0.5,  # Center the legend
+        xanchor="center",  # Horizontal alignment
+        yanchor="top",  # Vertical alignment
     )
-    # Move the legend to the bottom
-    fig2.update_layout(
-        xaxis=dict(
-            tickmode="array",
-            tickvals=unique_dates,
-            ticktext=[date.strftime("%Y-%m-%d") for date in unique_dates],
-        ),
-        legend=dict(
-            orientation="h",  # Horizontal legend
-            y=-0.2,  # Move the legend below the plot
-            x=0.5,  # Center the legend
-            xanchor="center",  # Horizontal alignment
-            yanchor="top",  # Vertical alignment
-        )
+)
+
+fig1.update_traces(hovertemplate="<b>%{y}</b>")
+col2.plotly_chart(fig1)
+
+
+# Rightmost column: display the fraction of the icu_covid over the sum
+fig2 = px.line(
+    filtered_df,
+    x="collection_week",
+    y="icu_fraction",
+    color="quality_score",
+    markers=True,
+    title="Fraction of COVID Patients in the ICU",
+    labels={"collection_week": "Collection Week",
+            "icu_fraction": "COVID ICU patients/ All COVID patients",
+            "quality_score": "Quality Score"},
+)
+# Move the legend to the bottom
+fig2.update_layout(
+    xaxis=dict(
+        tickmode="array",
+        tickvals=unique_dates,
+        ticktext=[date.strftime("%Y-%m-%d") for date in unique_dates],
+    ),
+    legend=dict(
+        orientation="h",  # Horizontal legend
+        y=-0.2,  # Move the legend below the plot
+        x=0.5,  # Center the legend
+        xanchor="center",  # Horizontal alignment
+        yanchor="top",  # Vertical alignment
     )
+)
 
 
-    fig2.update_traces(hovertemplate="<b>%{y:.2f}</b>")
-    st.plotly_chart(fig2)
+fig2.update_traces(hovertemplate="<b>%{y:.2f}</b>")
+col3.plotly_chart(fig2)
 
 
 
