@@ -178,7 +178,7 @@ Run `load-quality.py` to set up the database schema:
 python load-quality.py <YYYY-MM-DD> <path_to_quality_dataset.csv>
 ```
 
-### Step 3: Run the Weekly Report**
+### Step 3: Run the Weekly Report
 To generate the interactive report, run the following command:
 ```bash
 streamlit run Weekly_Report.py
