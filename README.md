@@ -21,9 +21,13 @@ The scripts handle table creation and data insertion from structured CSV files, 
      - `re`
      - `sys`
      - `datetime`
+     - `streamlit`
+     - `pydeck`
+     - `plotly`
+     - `matplotlib`
    - Install these using:
      ```bash
-     pip install pandas psycopg re sys datatime 
+     pip install pandas psycopg re sys datetime streamlit pydeck plotly matplotlib
      ```
 
 2. **Database Credentials File**:
@@ -115,6 +119,43 @@ This script:
 - Inserts the data into the `quality` table.
 - Updates the `demo` table with hospital details if new hospitals are found.
 
+### **4. Weekly_Report.py**
+This script generates an **interactive weekly report** using Streamlit. The report provides detailed visualizations and insights about hospital utilization and COVID-19 impact. Below are the **seven visualizations** included in the report:
+
+1. **Summary of Hospital Records Over Time**:
+   - A line chart showing the total number of hospital records loaded for the selected week and previous weeks.
+   - Includes a comparison of the selected week's data against the prior week with percentage changes.
+
+2. **Hospital Beds Availability Summary**:
+   - A table summarizing the total number of adult and pediatric beds available during the selected week, the number used, and the number occupied by COVID patients.
+   - The table also shows comparisons to the 4 most recent weeks.
+
+3. **Fraction of Beds Occupied by Hospital Quality Rating**:
+   - A bar chart comparing the fraction of beds in use across hospitals grouped by quality ratings.
+   - Fraction is calculated as:
+     ```
+     Fraction = (Adult Beds Occupied + Pediatric Beds Occupied) / (Total Adult Beds + Total Pediatric Beds)
+     ```
+   - Useful for analyzing how bed usage varies between high-quality and low-quality hospitals.
+
+4. **Total and COVID-Specific Bed Usage Trends**:
+   - A line chart displaying trends over time in the total number of hospital beds used (all cases) and the number used by COVID patients.
+   - Provides an overview of hospital utilization trends up to the selected week.
+
+5. **Hospital Utilization by Quality Rating Over Time**:
+   - A time-series plot of total hospital utilization categorized by quality ratings.
+   - Shows how usage trends vary between high-quality and low-quality hospitals over multiple weeks.
+
+6. **COVID ICU vs Non-ICU Beds by Quality Rating**:
+   - A line plot showing the fraction of COVID beds in ICUs compared to non-ICU beds, grouped by quality ratings.
+   - Highlights the distribution of critical care resources.
+
+7. **Geographic Visualizations**:
+   - **COVID Hospital Beds by State**:
+     - A choropleth map displaying the total number of hospital beds occupied by COVID patients, grouped by state.
+   - **Emergency Services by Hospital Location**:
+     - A map showing hospital locations across states, categorized by the availability of emergency services.
+
 ---
 
 ## **Usage**
@@ -136,3 +177,11 @@ Run `load-quality.py` to set up the database schema:
 ```bash
 python load-quality.py <YYYY-MM-DD> <path_to_quality_dataset.csv>
 ```
+
+### Step 3: Run the Weekly Report**
+To generate the interactive report, run the following command:
+```bash
+streamlit run Weekly_Report.py
+```
+
+
