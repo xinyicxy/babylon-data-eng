@@ -74,7 +74,7 @@ styled_df = df1.style.apply(highlight_first_row, axis=1)
 st.title("Table of beds availability information in recent weeks")
 st.markdown(
     """
-    <p style='color:yellow; font-weight:bold;'>
+    <p style='color:grey; font-weight:bold;'>
     * The row highlighted in yellow represents the current week.
     </p>
     """,
