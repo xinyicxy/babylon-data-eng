@@ -60,8 +60,27 @@ df1.columns = ['Week Collected', 'Adult beds available',
                'Total beds used',
                'COVID patients']
 
-st.subheader("Hospital Beds availability information in recent weeks")
-st.dataframe(df1)
+
+def highlight_first_row(row):
+    if row.name == 'Week 1':  # Check if it's the first row
+        return ["background-color: yellow"] * len(row)
+    else:
+        return [""] * len(row)
+
+
+# Apply the style
+styled_df = df1.style.apply(highlight_first_row, axis=1)
+
+st.title("Table of beds availability information in recent weeks")
+st.markdown(
+    """
+    <p style='color:yellow; font-weight:bold;'>
+    * The row highlighted in yellow represents the current week.
+    </p>
+    """,
+    unsafe_allow_html=True
+)
+st.dataframe(styled_df, hide_index=True)
 
 
 # Plot 1: Summary of how many hospital records were loaded in the week
