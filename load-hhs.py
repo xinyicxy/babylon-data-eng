@@ -32,16 +32,12 @@ df[cols] = df[cols].where(df[cols] != 'NA', None)
 # Weekly table copy
 df1 = df[['hospital_pk', 'collection_week'] + cols].copy()
 # Check that occupied <= total
-df1.iloc[:, 3] = df1.iloc[:, 3].where(
-    df1.iloc[:, 3] <= df1.iloc[:, 2], None)
-df1.iloc[:, 5] = df1.iloc[:, 5].where(
-    df1.iloc[:, 5] <= df1.iloc[:, 4], None)
-df1.iloc[:, 7] = df1.iloc[:, 7].where(
-    df1.iloc[:, 7] <= df1.iloc[:, 6], None)
+df1.iloc[df1.iloc[:, 3] > df1.iloc[:, 2], [2, 3]] = None
+df1.iloc[df1.iloc[:, 5] > df1.iloc[:, 4], [4, 5]] = None
+df1.iloc[df1.iloc[:, 7] > df1.iloc[:, 6], [6, 7]] = None
+df1.iloc[df1.iloc[:, 9] > df1.iloc[:, 7], [7, 9]] = None
 df1.iloc[:, 8] = df1.iloc[:, 8].where(
     df1.iloc[:, 8] <= (df1.iloc[:, 3] + df1.iloc[:, 5]), None)
-df1.iloc[:, 9] = df1.iloc[:, 9].where(
-    df1.iloc[:, 9] <= df1.iloc[:, 7], None)
 
 # Columns for demo table
 cols_demo = [
