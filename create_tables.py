@@ -3,7 +3,6 @@ import psycopg
 import credentials
 
 
-# Opening connection to database
 conn = psycopg.connect(
    host="pinniped.postgres.database.azure.com",
    dbname=credentials.DB_USER,
@@ -12,7 +11,6 @@ conn = psycopg.connect(
 )
 
 
-# Creating the table "demo"
 cur_demo = conn.cursor()
 cur_demo.execute("DROP TABLE IF EXISTS quality;")
 cur_demo.execute("DROP TABLE IF EXISTS weekly;")
@@ -34,7 +32,6 @@ CREATE TABLE demo (
 cur_demo.execute(create_demo)
 
 
-# Creating the table "quality"
 cur_quality = conn.cursor()
 cur_quality.execute("DROP TABLE IF EXISTS quality;")
 create_quality = """
@@ -48,7 +45,6 @@ CREATE TABLE quality (
 cur_quality.execute(create_quality)
 
 
-# Create the table "weekly"
 cur_weekly = conn.cursor()
 cur_weekly.execute("DROP TABLE IF EXISTS weekly;")
 create_weekly = """
@@ -57,17 +53,20 @@ CREATE TABLE weekly (
     hospital_id TEXT NOT NULL REFERENCES demo (id),
     collection_week DATE NOT NULL,
     adult_beds DECIMAL CHECK (adult_beds >= 0),
-    adult_bed_occupied DECIMAL CHECK (adult_bed_occupied >= 0),
+    adult_bed_occupied DECIMAL CHECK (adult_bed_occupied >= 0
+        AND adult_bed_occupied <= adult_beds),
     pediatric_beds DECIMAL CHECK (pediatric_beds >= 0),
-    pediatric_bed_occupied DECIMAL CHECK (pediatric_bed_occupied >= 0),
+    pediatric_bed_occupied DECIMAL CHECK (pediatric_bed_occupied >= 0
+        AND pediatric_bed_occupied <= pediatric_beds),
     icu_beds DECIMAL CHECK (icu_beds >= 0),
-    icu_bed_occupied DECIMAL CHECK (icu_bed_occupied >= 0),
-    beds_covid DECIMAL CHECK (beds_covid >= 0),
-    icu_covid DECIMAL CHECK (icu_covid >= 0)
+    icu_bed_occupied DECIMAL CHECK (icu_bed_occupied >= 0
+        AND icu_bed_occupied <= icu_beds),
+    beds_covid DECIMAL CHECK (beds_covid >= 0
+        AND beds_covid <= (adult_bed_occupied + pediatric_bed_occupied)),
+    icu_covid DECIMAL CHECK (icu_covid >= 0
+        AND icu_covid <= icu_bed_occupied)
 );"""
 cur_weekly.execute(create_weekly)
 
-
-# Commit changes and close connection
 conn.commit()
 conn.close()
