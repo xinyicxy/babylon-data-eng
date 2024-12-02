@@ -5,6 +5,7 @@ import psycopg
 import re
 import credentials
 
+
 # Load hhs dataset
 file_path = str(sys.argv[1])
 df = pd.read_csv(file_path)
@@ -30,6 +31,17 @@ df[cols] = df[cols].where(df[cols] != 'NA', None)
 
 # Weekly table copy
 df1 = df[['hospital_pk', 'collection_week'] + cols].copy()
+# Check that occupied <= total
+df1.iloc[:, 3] = df1.iloc[:, 3].where(
+    df1.iloc[:, 3] <= df1.iloc[:, 2], None)
+df1.iloc[:, 5] = df1.iloc[:, 5].where(
+    df1.iloc[:, 5] <= df1.iloc[:, 4], None)
+df1.iloc[:, 7] = df1.iloc[:, 7].where(
+    df1.iloc[:, 7] <= df1.iloc[:, 6], None)
+df1.iloc[:, 8] = df1.iloc[:, 8].where(
+    df1.iloc[:, 8] <= (df1.iloc[:, 3] + df1.iloc[:, 5]), None)
+df1.iloc[:, 9] = df1.iloc[:, 9].where(
+    df1.iloc[:, 9] <= df1.iloc[:, 7], None)
 
 # Columns for demo table
 cols_demo = [
@@ -112,7 +124,7 @@ try:
     )
     # Print the number of rows inserted
     rowcount = cur_demo.rowcount
-    print(rowcount, " rows have been inserted into database quality")
+    print(rowcount, " rows have been inserted into database demo")
 
 except Exception as err:
     rowcount = cur_demo.rowcount
@@ -139,13 +151,13 @@ try:
     cur_weekly.executemany(
         "INSERT INTO weekly"
         "(hospital_id, collection_week, adult_beds, adult_bed_occupied, \
-            pediatric_beds, pediatric_bed_occupied, icu_beds, icu_bed_occupied, \
+          pediatric_beds, pediatric_bed_occupied, icu_beds, icu_bed_occupied,\
                 beds_covid, icu_covid)"
         "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
         weekly
     )
     rowcount = cur_weekly.rowcount
-    print(rowcount, " rows have been inserted into database quality")
+    print(rowcount, " rows have been inserted into database weekly")
 
 except Exception as err:
     rowcount = cur_weekly.rowcount
