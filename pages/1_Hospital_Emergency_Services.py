@@ -191,14 +191,14 @@ with map_col:
         # Render PyDeck map
         st.pydeck_chart(deck)
 
-        # Summary of Hospitals
-        st.subheader("Summary of Hospitals")
-        st.write(f"Total hospitals displayed: {len(data)}")
-        for row in data:
-            st.write(
-                f"Hospital: {row['name']}, State: {row['state']}, "
-                f"ZIP: {row['zip']}, "
-                f"Emergency Service: {row['emergency_service_text']}"
-            )
+        # # Summary of Hospitals
+        # st.subheader("Summary of Hospitals")
+        # st.write(f"Total hospitals displayed: {len(data)}")
+        # for row in data:
+        #     st.write(
+        #         f"Hospital: {row['name']}, State: {row['state']}, "
+        #         f"ZIP: {row['zip']}, "
+        #         f"Emergency Service: {row['emergency_service_text']}"
+        #     )
     else:
         st.warning("No hospitals found matching the selected criteria.")
