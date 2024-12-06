@@ -168,7 +168,8 @@ cur.execute("SELECT quality.quality_score, \
                     FROM weekly INNER JOIN quality ON \
                         weekly.hospital_id = quality.hospital_id \
                 WHERE weekly.collection_week = %s \
-                    AND weekly.adult_bed_occupied <= weekly.adult_beds \
+                    AND weekly.adult_bed_occupied is NOT NULL \
+                    AND weekly.adult_beds is NOT NULL \
                     AND quality.date = ( \
                         SELECT MAX(q.date) \
                         FROM quality q \
@@ -348,7 +349,7 @@ fig1.update_layout(
     ),
     legend=dict(
         orientation="h",  # Horizontal legend
-        y=-0.2,  # Move the legend below the plot
+        y=-0.4,  # Move the legend below the plot
         x=0.5,  # Center the legend
         xanchor="center",  # Horizontal alignment
         yanchor="top",  # Vertical alignment
@@ -390,7 +391,7 @@ fig1.update_layout(
     ),
     legend=dict(
         orientation="h",  # Horizontal legend
-        y=-0.2,  # Move the legend below the plot
+        y=-0.4,  # Move the legend below the plot
         x=0.5,  # Center the legend
         xanchor="center",  # Horizontal alignment
         yanchor="top",  # Vertical alignment
@@ -421,7 +422,7 @@ fig2.update_layout(
     ),
     legend=dict(
         orientation="h",  # Horizontal legend
-        y=-0.2,  # Move the legend below the plot
+        y=-0.4,  # Move the legend below the plot
         x=0.5,  # Center the legend
         xanchor="center",  # Horizontal alignment
         yanchor="top",  # Vertical alignment
