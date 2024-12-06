@@ -61,7 +61,7 @@ try:
        DO UPDATE SET
            type_of_hospital = EXCLUDED.type_of_hospital,
            type_of_ownership = EXCLUDED.type_of_ownership,
-           emergency_service = EXCLUDED.emergency_service
+           emergency_service = EXCLUDED.emergency_service;
        """, [
            (row.hospital_id, row.type_of_hospital, row.type_of_ownership,
             row.emergency_service)
@@ -81,8 +81,10 @@ else:
 
 # Writing into the "quality" database
 try:
-    cur.executemany("INSERT INTO quality (hospital_id, date, quality_score) \
-                    VALUES (%s, %s, cast(%s as integer))", list_quality)
+    cur.executemany("""INSERT INTO quality (hospital_id, date, quality_score)
+                    VALUES (%s, %s, cast(%s as integer))
+                    ON CONFLICT (hospital_id, date) DO NOTHING;""",
+                    list_quality)
     rowcount = cur.rowcount
     print(rowcount, " rows have been inserted into database \"quality\".")
 

@@ -149,7 +149,8 @@ try:
         "(hospital_id, collection_week, adult_beds, adult_bed_occupied, \
           pediatric_beds, pediatric_bed_occupied, icu_beds, icu_bed_occupied,\
                 beds_covid, icu_covid)"
-        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        "ON CONFLICT (hospital_id, collection_week) DO NOTHING;",
         weekly
     )
     rowcount = cur_weekly.rowcount

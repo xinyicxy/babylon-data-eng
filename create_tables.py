@@ -39,7 +39,8 @@ CREATE TABLE quality (
        id SERIAL PRIMARY KEY,
        hospital_id TEXT NOT NULL REFERENCES demo (id),
        date DATE NOT NULL,
-       quality_score INTEGER NOT NULL
+       quality_score INTEGER NOT NULL,
+       unique(hospital_id, date)
 );
 """
 cur_quality.execute(create_quality)
@@ -64,7 +65,8 @@ CREATE TABLE weekly (
     beds_covid DECIMAL CHECK (beds_covid >= 0
         AND beds_covid <= (adult_bed_occupied + pediatric_bed_occupied)),
     icu_covid DECIMAL CHECK (icu_covid >= 0
-        AND icu_covid <= icu_bed_occupied)
+        AND icu_covid <= icu_bed_occupied),
+    unique(hospital_id, collection_week)
 );"""
 cur_weekly.execute(create_weekly)
 
