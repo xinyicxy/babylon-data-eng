@@ -62,6 +62,15 @@ df1.columns = ['Week Collected', 'Adult beds available',
 
 
 def highlight_first_row(row):
+    """Highlight the first row in the DataFrame.
+    Parameters
+    ----------
+    row : pandas.Series
+    Returns
+    -------
+    list
+        A list of strings to apply the style
+    """
     if row.name == 'Week 1':  # Check if it's the first row
         return ["background-color: yellow"] * len(row)
     else:
@@ -86,6 +95,20 @@ st.dataframe(styled_df, hide_index=True)
 # Plot 1: Summary of how many hospital records were loaded in the week
 # selected by the user, and how that compares to previous weeks.
 def fetch_weekly_data(conn, selected_week):
+    """Fetch weekly hospital records from database and calculate the difference
+    and percentage change from the previous week.
+    Parameters
+    ----------
+    conn : psycopg2 connection
+        Connection to the database
+    selected_week : str
+        The selected week to fetch data for
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing the weekly data
+    """
+
     query = """
     WITH weekly_data AS (
         SELECT
@@ -243,6 +266,17 @@ right_col.write(fig)
 # Plot 5: Plot of covid icu vs non icu by quality over time
 @st.cache_data
 def load_data(date):
+    """Load COVID ICU and non ICU by quality over time data from the database.
+    Parameters
+    ----------
+    date : datetime
+        The date to filter the data
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing the data
+    """
+
     cur.execute("WITH latest_quality AS ( \
                         SELECT \
                             B.hospital_id, \
